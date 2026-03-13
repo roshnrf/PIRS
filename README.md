@@ -172,5 +172,3 @@ Five metrics were defined to measure whether the system actually *prevents* thre
 | **TTC** — Time to Contain | How long from first flag to risk stabilised? |
 
 ---
-
-## MS Capstone — March 2026
