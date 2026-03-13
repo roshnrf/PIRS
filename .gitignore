@@ -1,0 +1,69 @@
+# ============================================================
+# PIRS - Git Ignore
+# ============================================================
+
+# ── Raw datasets (too large for GitHub) ─────────────────────
+pirs_backend/dataset/
+pirs_backend/ExtractedData/
+lanl_data/auth.txt/
+lanl_data/proc.txt/
+lanl_data/redteam.txt/
+lanl_data/lanl_features.csv
+lanl_data/redteam_parsed.csv
+lanl_data/extraction_log.txt
+
+# ── Generated pipeline outputs ──────────────────────────────
+pirs_backend/pirs_outputs/
+pirs_v2/outputs/cert/*.csv
+pirs_v2/outputs/lanl/*.csv
+pirs_v2/outputs/cert/plots/
+pirs_v2/outputs/lanl/plots/
+lanl_data/lanl_outputs/
+
+# Keep small metric/validation files
+!pirs_v2/outputs/cert/cert_metrics.csv
+!pirs_v2/outputs/cert/cert_validation_summary.csv
+!pirs_v2/outputs/cert/cert_validation_early_warning.csv
+
+# ── Trained model binaries ───────────────────────────────────
+*.pkl
+*.h5
+*.pt
+*.pth
+*.onnx
+
+# ── Python virtual environment ───────────────────────────────
+pirs_backend/venv/
+venv/
+.venv/
+env/
+
+# ── Python cache ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# ── Jupyter / IPython ────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── OS files ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE files ────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Logs ─────────────────────────────────────────────────────
+*.log
+results/make_excel.py
+
+# ── Claude internal settings ─────────────────────────────────
+.claude/
+**/.claude/

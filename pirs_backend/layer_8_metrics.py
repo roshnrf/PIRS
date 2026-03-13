@@ -1,0 +1,245 @@
+"""
+PIRS BACKEND - LAYER 8: PREVENTION METRICS
+===========================================
+Calculate EPR, PQ, PIMS, IES, TTC metrics
+
+Can be run standalone: python 07_layer_8_metrics.py
+Or imported: from layer_8_metrics import run_prevention_metrics
+"""
+
+import os
+import sys
+import time
+import pandas as pd
+import numpy as np
+
+try:
+    from config import PIRSConfig
+except ImportError:
+    sys.path.insert(0, os.path.dirname(__file__))
+    from config import PIRSConfig
+
+def load_qlearning_results():
+    """Load Q-learning results"""
+    print("\n[DIR] Loading Q-learning results...")
+    
+    file = os.path.join(PIRSConfig.OUTPUT_DIR, PIRSConfig.OUTPUT_FILES['qlearning'])
+    
+    if not os.path.exists(file):
+        raise FileNotFoundError("Q-learning results not found. Run 06_layer_7_qlearning.py first")
+    
+    df = pd.read_csv(file)
+    
+    print(f"[OK] Loaded {len(df):,} observations")
+    
+    return df
+
+def simulate_prevention_outcomes(df):
+    """Simulate prevention outcomes based on effectiveness rates"""
+    print("\n[RAND] Simulating prevention outcomes...")
+    
+    np.random.seed(PIRSConfig.RANDOM_STATE)
+    
+    df['prevented'] = 0
+    
+    for idx, row in df.iterrows():
+        if row['drift_score'] < PIRSConfig.DRIFT_THRESHOLD_LOW:
+            continue  # No intervention needed
+        
+        archetype = row['PRIMARY_DIMENSION']
+        level = row['intervention_level']
+        level_key = f"L{level}"
+        
+        # Get effectiveness rate
+        if archetype in PIRSConfig.PREVENTION_EFFECTIVENESS:
+            eff = PIRSConfig.PREVENTION_EFFECTIVENESS[archetype].get(level_key, 0.5)
+        else:
+            eff = 0.5
+        
+        # Adjust by drift severity
+        eff_adjusted = eff * (1 - 0.3 * row['drift_score'])  # Higher drift = harder to prevent
+        eff_adjusted = max(0.1, min(0.95, eff_adjusted))
+        
+        # Simulate outcome
+        df.at[idx, 'prevented'] = 1 if np.random.random() < eff_adjusted else 0
+    
+    prevention_rate = df['prevented'].mean()
+    print(f"[OK] Overall prevention rate: {100*prevention_rate:.1f}%")
+    
+    return df
+
+def calculate_epr(df):
+    """Escalation Prevention Rate"""
+    at_risk = df[df['drift_score'] >= PIRSConfig.DRIFT_THRESHOLD_LOW]
+    
+    if len(at_risk) == 0:
+        return 0.0
+    
+    epr = 100 * at_risk['prevented'].sum() / len(at_risk)
+    return epr
+
+def calculate_pq(df):
+    """Preventability Quotient"""
+    at_risk = df[df['drift_score'] >= PIRSConfig.DRIFT_THRESHOLD_LOW]
+    
+    if len(at_risk) == 0:
+        return 0.0
+    
+    pq = at_risk['prevented'].sum() / len(at_risk)
+    return pq
+
+def calculate_pims(df):
+    """Personality-Intervention Match Score"""
+    # Compare matched vs random interventions
+    
+    # Current (matched) prevention rate
+    matched_rate = df['prevented'].mean()
+    
+    # Simulate random interventions
+    np.random.seed(PIRSConfig.RANDOM_STATE + 1)
+    df_random = df.copy()
+    df_random['intervention_level'] = np.random.randint(1, 8, size=len(df))
+    
+    # Re-simulate outcomes for random
+    df_random = simulate_prevention_outcomes(df_random)
+    random_rate = df_random['prevented'].mean()
+    
+    if random_rate > 0:
+        pims = matched_rate / random_rate
+    else:
+        pims = 1.0
+    
+    return pims
+
+def calculate_ies(df):
+    """Intervention Efficiency Score"""
+    prevention_rate = df['prevented'].mean()
+    avg_level = df['intervention_level'].mean()
+    avg_ttc = 28.6  # Assumed time-to-correction (hours)
+    
+    ies = prevention_rate / (avg_level * (avg_ttc / 24))
+    return ies
+
+def calculate_ttc(df):
+    """Time-to-Correction (simulated)"""
+    # Simulate based on intervention level
+    ttc_by_level = {1: 48, 2: 36, 3: 28, 4: 24, 5: 18, 6: 12, 7: 6}
+    
+    df['ttc_hours'] = df['intervention_level'].map(ttc_by_level)
+    avg_ttc = df['ttc_hours'].mean()
+    
+    return avg_ttc
+
+def calculate_all_metrics(df):
+    """Calculate all 5 prevention metrics"""
+    print("\n[INFO] Calculating prevention metrics...")
+    
+    epr = calculate_epr(df)
+    pq = calculate_pq(df)
+    pims = calculate_pims(df)
+    ies = calculate_ies(df)
+    ttc = calculate_ttc(df)
+    
+    metrics = {
+        'EPR': epr,
+        'PQ': pq,
+        'PIMS': pims,
+        'IES': ies,
+        'TTC': ttc
+    }
+    
+    print("\n" + "="*70)
+    print("PREVENTION METRICS RESULTS")
+    print("="*70)
+    print(f"EPR  (Escalation Prevention Rate):  {epr:.1f}%  [Target: 40-55%]")
+    print(f"PQ   (Preventability Quotient):     {pq:.2f}   [Target: 0.50-0.70]")
+    print(f"PIMS (Personality Match Score):     {pims:.2f}   [Target: 1.15-1.30]")
+    print(f"IES  (Intervention Efficiency):     {ies:.2f}   [Target: Maximize]")
+    print(f"TTC  (Time-to-Correction):          {ttc:.1f}h  [Target: 24-48h]")
+    print("="*70)
+    
+    # Check targets
+    targets_met = 0
+    if 40 <= epr <= 55:
+        print("[OK] EPR within target range")
+        targets_met += 1
+    else:
+        print(f"[WARN]  EPR {'below' if epr < 40 else 'above'} target range")
+    
+    if 0.50 <= pq <= 0.70:
+        print("[OK] PQ within target range")
+        targets_met += 1
+    else:
+        print(f"[WARN]  PQ {'below' if pq < 0.50 else 'above'} target range")
+    
+    if 1.15 <= pims <= 1.30:
+        print("[OK] PIMS within target range")
+        targets_met += 1
+    else:
+        print(f"[WARN]  PIMS {'below' if pims < 1.15 else 'above'} target range")
+    
+    if 24 <= ttc <= 48:
+        print("[OK] TTC within target range")
+        targets_met += 1
+    else:
+        print(f"[WARN]  TTC {'below' if ttc < 24 else 'above'} target range")
+    
+    print(f"\n[TARGET] Targets met: {targets_met}/4")
+    
+    return metrics, df
+
+def save_metrics(metrics, df):
+    """Save prevention metrics"""
+    print("\n[SAVE] Saving metrics...")
+    
+    # Save metrics summary
+    metrics_df = pd.DataFrame([metrics])
+    metrics_file = os.path.join(PIRSConfig.OUTPUT_DIR, PIRSConfig.OUTPUT_FILES['metrics'])
+    metrics_df.to_csv(metrics_file, index=False)
+    print(f"[OK] Metrics saved: {metrics_file}")
+    
+    # Save full results with prevention outcomes
+    output_file = os.path.join(PIRSConfig.OUTPUT_DIR, 'layer_8_full_results.csv')
+    df.to_csv(output_file, index=False)
+    print(f"[OK] Full results saved: {output_file}")
+    
+    return metrics_file
+
+def run_prevention_metrics():
+    """Main function"""
+    print("\n" + "="*70)
+    print("LAYER 8: PREVENTION METRICS")
+    print("="*70)
+    
+    start_time = time.time()
+    
+    # Load data
+    df = load_qlearning_results()
+    
+    # Simulate prevention outcomes
+    df = simulate_prevention_outcomes(df)
+    
+    # Calculate metrics
+    metrics, df = calculate_all_metrics(df)
+    
+    # Save
+    save_metrics(metrics, df)
+    
+    elapsed = time.time() - start_time
+    
+    print(f"\n" + "="*70)
+    print(f"[OK] PREVENTION METRICS COMPLETE")
+    print(f"   Total time: {elapsed:.1f} seconds")
+    print("="*70 + "\n")
+    
+    return metrics, df
+
+if __name__ == "__main__":
+    try:
+        metrics, df = run_prevention_metrics()
+        print("\n[OK] Prevention metrics module executed successfully")
+    except Exception as e:
+        print(f"\n[ERROR] ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
