@@ -1,0 +1,2 @@
+dataset,total_users,red_team_users,total_days,total_records,roc_auc_event,roc_auc_user,top5_pct_detected,top5_pct_total,top5_pct_rate,features_used,auth_log_size_gb,proc_log_size_gb
+LANL Unified Host and Network,12416,97,58,445000,0.748,0.7429,20,97,20.6,12,69,15
