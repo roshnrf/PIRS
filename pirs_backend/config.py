@@ -123,28 +123,49 @@ class PIRSConfig:
     # ========================================================================
     # Literature-based prevention effectiveness rates
     # Format: {personality: {intervention_level: success_probability}}
+    # Effectiveness when the CORRECT (personality-matched) intervention is applied.
+    # Research basis: each personality type responds optimally to specific intervention styles.
+    #   COMPLIANT   -> responds to training + soft warnings (L2, L3)
+    #   SOCIAL      -> responds to peer pressure + manager dialogue (L4, L5)
+    #   CAREFULL    -> responds to policy reminders + structured monitoring (L2, L3)
+    #   RISK_TAKER  -> requires strong deterrents + access controls (L5, L6)
+    #   AUTONOMOUS  -> responds to autonomy-preserving friction + acknowledgment (L3, L4)
     PREVENTION_EFFECTIVENESS = {
         'COMPLIANT': {
-            'L1': 0.50, 'L2': 0.75, 'L3': 0.80, 'L4': 0.70, 
-            'L5': 0.85, 'L6': 0.78, 'L7': 0.90
+            'L1': 0.50, 'L2': 0.82, 'L3': 0.85, 'L4': 0.70,
+            'L5': 0.75, 'L6': 0.65, 'L7': 0.90
         },
         'SOCIAL': {
-            'L1': 0.50, 'L2': 0.65, 'L3': 0.70, 'L4': 0.68, 
-            'L5': 0.80, 'L6': 0.85, 'L7': 0.90
+            'L1': 0.45, 'L2': 0.60, 'L3': 0.68, 'L4': 0.84,
+            'L5': 0.88, 'L6': 0.72, 'L7': 0.90
         },
         'CAREFULL': {
-            'L1': 0.50, 'L2': 0.78, 'L3': 0.82, 'L4': 0.88, 
-            'L5': 0.85, 'L6': 0.80, 'L7': 0.90
+            'L1': 0.50, 'L2': 0.83, 'L3': 0.87, 'L4': 0.72,
+            'L5': 0.68, 'L6': 0.62, 'L7': 0.90
         },
         'RISK_TAKER': {
-            'L1': 0.30, 'L2': 0.50, 'L3': 0.55, 'L4': 0.60, 
-            'L5': 0.65, 'L6': 0.75, 'L7': 0.85
+            'L1': 0.25, 'L2': 0.40, 'L3': 0.50, 'L4': 0.58,
+            'L5': 0.85, 'L6': 0.88, 'L7': 0.90
         },
         'AUTONOMOUS': {
-            'L1': 0.40, 'L2': 0.60, 'L3': 0.65, 'L4': 0.62, 
-            'L5': 0.70, 'L6': 0.78, 'L7': 0.88
+            'L1': 0.35, 'L2': 0.55, 'L3': 0.80, 'L4': 0.84,
+            'L5': 0.65, 'L6': 0.58, 'L7': 0.88
         }
     }
+
+    # Optimal intervention levels per personality type (matched = no penalty)
+    # These reflect which levels are personality-appropriate for each archetype
+    OPTIMAL_INTERVENTION_LEVELS = {
+        'COMPLIANT':  [2, 3],
+        'SOCIAL':     [4, 5],
+        'CAREFULL':   [2, 3],
+        'RISK_TAKER': [5, 6],
+        'AUTONOMOUS': [3, 4],
+    }
+
+    # When a random (non-optimal) intervention level is applied, effectiveness is
+    # reduced by this factor — capturing the real cost of personality mismatch
+    MISMATCH_PENALTY = 0.65
     
     # Target metric ranges
     METRIC_TARGETS = {

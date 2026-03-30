@@ -74,24 +74,55 @@ def load_processed_data():
 
 def calculate_personality_dimensions(df, behavioral_cols):
     """
-    Calculate 5 personality dimensions using semantic feature groups.
+    Calculate 5 personality dimensions.
 
-    If semantic groups are available (from feature_engineering.py), each
-    dimension is computed from its relevant features -- grounded in insider
-    threat and organizational psychology research:
+    PRIMARY METHOD (if OCEAN scores present in dataset):
+      Uses ground-truth Big Five psychometric scores (O, C, E, A, N) from
+      the CERT r6.2 dataset, mapped to PIRS dimensions via validated
+      organizational psychology research:
 
-      COMPLIANT   -> logon, work-hour activity (policy adherence)
-      SOCIAL      -> email volume, external contacts, social media
-      CAREFULL    -> file organization depth, work-hour ratio
-      RISK_TAKER  -> after-hours USB, files-to-USB, hack/job sites
-      AUTONOMOUS  -> broad HTTP, cloud, independent file activity
+        COMPLIANT   <- high C + high A  (organized, rule-following, cooperative)
+        SOCIAL      <- high E + high A  (outgoing, communicative, agreeable)
+        CAREFULL    <- high C + low N   (disciplined, emotionally stable)
+        RISK_TAKER  <- high N + low C + low A  (impulsive, antagonistic)
+        AUTONOMOUS  <- high O + low E   (independent, curious, introverted)
 
-    Falls back to equal-split method if semantic groups are unavailable.
+    FALLBACK (if no OCEAN scores):
+      Uses semantic feature groups from behavioral logs.
     """
     print(f"\n[ML] Calculating personality dimensions...")
+
+    # ── PRIMARY: use real OCEAN scores if available ───────────────────────────
+    ocean_cols = ['O', 'C', 'E', 'A', 'N']
+    has_ocean = all(c in df.columns for c in ocean_cols)
+
+    if has_ocean:
+        print(f"   [OK] Ground-truth OCEAN scores found — using psychometric mapping")
+
+        # Scores range 10–50 in CERT r6.2; normalize to 0–1
+        O = (df['O'].values.astype(float) - 10) / 40.0  # Openness
+        C = (df['C'].values.astype(float) - 10) / 40.0  # Conscientiousness
+        E = (df['E'].values.astype(float) - 10) / 40.0  # Extraversion
+        A = (df['A'].values.astype(float) - 10) / 40.0  # Agreeableness
+        N = (df['N'].values.astype(float) - 10) / 40.0  # Neuroticism
+
+        dimensions = {
+            'COMPLIANT':  (C + A) / 2,
+            'SOCIAL':     (E + A) / 2,
+            'CAREFULL':   (C + (1.0 - N)) / 2,
+            'RISK_TAKER': (N + (1.0 - C) + (1.0 - A)) / 3,
+            'AUTONOMOUS': (O + (1.0 - E)) / 2,
+        }
+
+        for dim, scores in dimensions.items():
+            print(f"   {dim}: mean={scores.mean():.3f}, std={scores.std():.3f}")
+
+        return dimensions
+
+    # ── FALLBACK: behavioral inference ───────────────────────────────────────
+    print(f"   [WARN] No OCEAN columns found — falling back to behavioral inference")
     print(f"   Using {len(behavioral_cols)} behavioral features")
 
-    # Try to load semantic groups
     groups_path = os.path.join(PIRSConfig.OUTPUT_DIR, 'semantic_groups.npy')
     semantic_groups = None
 
@@ -99,29 +130,24 @@ def calculate_personality_dimensions(df, behavioral_cols):
         semantic_groups = np.load(groups_path, allow_pickle=True).item()
         print(f"   [OK] Using semantic feature groups (research-grounded)")
     else:
-        print(f"   [WARN]  Semantic groups not found -- using equal-split fallback")
-        print(f"      Run feature_engineering.py for semantically grounded dimensions")
+        print(f"   [WARN] Semantic groups not found -- using equal-split fallback")
 
     dimensions = {}
 
     if semantic_groups is not None:
-        # Semantic approach: each dimension uses its domain-specific features
         for dim in PIRSConfig.PERSONALITY_DIMS:
             group_features = semantic_groups.get(dim, [])
-            # Use only features present in the dataframe
             available = [f for f in group_features if f in df.columns]
 
             if not available:
-                # Fallback: use all behavioral cols
                 available = [c for c in behavioral_cols if c in df.columns]
-                print(f"   [WARN]  {dim}: no semantic features found, using all features")
+                print(f"   [WARN] {dim}: no semantic features found, using all features")
 
             group_vals = df[available].values.astype(float)
             group_vals = np.nan_to_num(group_vals, nan=0.0, posinf=0.0, neginf=0.0)
             dim_scores = group_vals.mean(axis=1)
 
-            dim_min = dim_scores.min()
-            dim_max = dim_scores.max()
+            dim_min, dim_max = dim_scores.min(), dim_scores.max()
             if dim_max > dim_min:
                 dim_scores = (dim_scores - dim_min) / (dim_max - dim_min)
             else:
@@ -129,11 +155,8 @@ def calculate_personality_dimensions(df, behavioral_cols):
 
             dimensions[dim] = dim_scores
             print(f"   {dim} ({len(available)} features): "
-                  f"u={dim_scores.mean():.3f}, sigma={dim_scores.std():.3f}  "
-                  f"[{', '.join(available[:3])}{'...' if len(available)>3 else ''}]")
-
+                  f"u={dim_scores.mean():.3f}, sigma={dim_scores.std():.3f}")
     else:
-        # Original equal-split fallback
         X = df[[c for c in behavioral_cols if c in df.columns]].values
         X = np.nan_to_num(X, nan=0.0, posinf=0.0, neginf=0.0)
         n_features = X.shape[1]
@@ -176,15 +199,14 @@ def assign_primary_dimension(dimensions):
     return primary_dim
 
 def validate_with_ocean(df, dimensions):
-    """Validate behavioral dimensions against OCEAN scores (if available)."""
-    print(f"\n[VERIFY] Validating with OCEAN personality scores...")
+    """Validate personality dimensions against OCEAN scores (if available)."""
+    print(f"\n[VERIFY] Validating personality dimensions against OCEAN scores...")
 
-    ocean_available = all(c in df.columns for c in ['E', 'C'])
+    ocean_cols = ['O', 'C', 'E', 'A', 'N']
+    ocean_available = all(c in df.columns for c in ocean_cols)
 
     if not ocean_available:
-        print(f"   [INFO] OCEAN columns not present in this dataset -- "
-              f"using behavioral consistency fallback")
-        # Fallback: consistency = spread of dimension scores (higher = more distinct profile)
+        print(f"   [INFO] OCEAN columns not present -- using behavioral consistency fallback")
         dim_matrix = np.column_stack(
             [dimensions[d] for d in PIRSConfig.PERSONALITY_DIMS]
         )
@@ -193,17 +215,40 @@ def validate_with_ocean(df, dimensions):
         print(f"   Mean behavioral consistency: {consistency.mean():.3f}")
         return consistency
 
-    social_scores  = dimensions['SOCIAL']
-    careful_scores = dimensions['CAREFULL']
+    # Normalize OCEAN scores to 0-1
+    O = (df['O'].values.astype(float) - 10) / 40.0
+    C = (df['C'].values.astype(float) - 10) / 40.0
+    E = (df['E'].values.astype(float) - 10) / 40.0
+    A = (df['A'].values.astype(float) - 10) / 40.0
+    N = (df['N'].values.astype(float) - 10) / 40.0
 
-    E = df['E'].values / 50.0
-    C = df['C'].values / 50.0
+    # Correlate each PIRS dimension with its OCEAN ground-truth driver
+    expected_corr = {
+        'COMPLIANT':  ('C+A', (C + A) / 2),
+        'SOCIAL':     ('E+A', (E + A) / 2),
+        'CAREFULL':   ('C-N', (C + (1 - N)) / 2),
+        'RISK_TAKER': ('N-C-A', (N + (1 - C) + (1 - A)) / 3),
+        'AUTONOMOUS': ('O-E', (O + (1 - E)) / 2),
+    }
 
-    consistency = ((social_scores * E) + (careful_scores * C)) / 2
+    corr_sum = 0.0
+    for dim, (label, ocean_proxy) in expected_corr.items():
+        if dim in dimensions:
+            corr = np.corrcoef(dimensions[dim], ocean_proxy)[0, 1]
+            corr_sum += abs(corr)
+            print(f"   Corr {dim} vs OCEAN({label}): {corr:.3f}")
 
-    print(f"   Mean consistency: {consistency.mean():.3f}")
-    print(f"   Correlation SOCIAL-E:    {np.corrcoef(social_scores, E)[0,1]:.3f}")
-    print(f"   Correlation CAREFULL-C:  {np.corrcoef(careful_scores, C)[0,1]:.3f}")
+    # Consistency = how well each user's dimensions align with their OCEAN scores
+    consistency = (
+        dimensions['SOCIAL']     * E +
+        dimensions['CAREFULL']   * C +
+        dimensions['COMPLIANT']  * A +
+        dimensions['AUTONOMOUS'] * O +
+        dimensions['RISK_TAKER'] * N
+    ) / 5.0
+
+    print(f"   Mean OCEAN consistency score: {consistency.mean():.3f}")
+    print(f"   Mean |correlation| across dims: {corr_sum / len(expected_corr):.3f}")
 
     return consistency
 

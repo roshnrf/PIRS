@@ -34,38 +34,50 @@ def load_qlearning_results():
     
     return df
 
-def simulate_prevention_outcomes(df):
-    """Simulate prevention outcomes based on effectiveness rates"""
+def simulate_prevention_outcomes(df, apply_mismatch_penalty=False):
+    """Simulate prevention outcomes based on effectiveness rates.
+
+    apply_mismatch_penalty=True: used for random-baseline simulation in PIMS.
+    When an intervention level is not personality-optimal, effectiveness is
+    reduced by MISMATCH_PENALTY to model the real cost of mismatched interventions.
+    """
     print("\n[RAND] Simulating prevention outcomes...")
-    
+
     np.random.seed(PIRSConfig.RANDOM_STATE)
-    
+
+    df = df.copy()
     df['prevented'] = 0
-    
+
+    optimal_levels = getattr(PIRSConfig, 'OPTIMAL_INTERVENTION_LEVELS', {})
+    mismatch_penalty = getattr(PIRSConfig, 'MISMATCH_PENALTY', 1.0)
+
     for idx, row in df.iterrows():
         if row['drift_score'] < PIRSConfig.DRIFT_THRESHOLD_LOW:
-            continue  # No intervention needed
-        
+            continue
+
         archetype = row['PRIMARY_DIMENSION']
-        level = row['intervention_level']
+        level = int(row['intervention_level'])
         level_key = f"L{level}"
-        
-        # Get effectiveness rate
+
         if archetype in PIRSConfig.PREVENTION_EFFECTIVENESS:
             eff = PIRSConfig.PREVENTION_EFFECTIVENESS[archetype].get(level_key, 0.5)
         else:
             eff = 0.5
-        
-        # Adjust by drift severity
-        eff_adjusted = eff * (1 - 0.3 * row['drift_score'])  # Higher drift = harder to prevent
+
+        # Apply mismatch penalty for random baseline
+        if apply_mismatch_penalty:
+            optimal = optimal_levels.get(archetype, [])
+            if optimal and level not in optimal:
+                eff *= mismatch_penalty
+
+        eff_adjusted = eff * (1 - 0.3 * row['drift_score'])
         eff_adjusted = max(0.1, min(0.95, eff_adjusted))
-        
-        # Simulate outcome
+
         df.at[idx, 'prevented'] = 1 if np.random.random() < eff_adjusted else 0
-    
+
     prevention_rate = df['prevented'].mean()
     print(f"[OK] Overall prevention rate: {100*prevention_rate:.1f}%")
-    
+
     return df
 
 def calculate_epr(df):
@@ -89,26 +101,34 @@ def calculate_pq(df):
     return pq
 
 def calculate_pims(df):
-    """Personality-Intervention Match Score"""
-    # Compare matched vs random interventions
-    
-    # Current (matched) prevention rate
-    matched_rate = df['prevented'].mean()
-    
-    # Simulate random interventions
+    """Personality-Intervention Match Score
+
+    Ratio of personality-matched prevention rate vs random intervention rate,
+    computed only over at-risk rows (drift_score >= threshold).
+    Computing over all rows is incorrect — 98%+ have drift=0 and prevented=0,
+    which collapses both rates to near-zero and produces a ratio ~1.0.
+    """
+    at_risk = df[df['drift_score'] >= PIRSConfig.DRIFT_THRESHOLD_LOW].copy()
+
+    if len(at_risk) == 0:
+        return 1.0
+
+    # Matched rate: personality-optimised interventions (already in df)
+    matched_rate = at_risk['prevented'].mean()
+
+    # Random baseline: randomise intervention levels on at-risk rows only
+    # apply_mismatch_penalty=True models the real cost of non-personality-matched interventions
     np.random.seed(PIRSConfig.RANDOM_STATE + 1)
-    df_random = df.copy()
-    df_random['intervention_level'] = np.random.randint(1, 8, size=len(df))
-    
-    # Re-simulate outcomes for random
-    df_random = simulate_prevention_outcomes(df_random)
+    df_random = at_risk.copy()
+    df_random['intervention_level'] = np.random.randint(1, 8, size=len(df_random))
+    df_random = simulate_prevention_outcomes(df_random, apply_mismatch_penalty=True)
     random_rate = df_random['prevented'].mean()
-    
+
     if random_rate > 0:
         pims = matched_rate / random_rate
     else:
         pims = 1.0
-    
+
     return pims
 
 def calculate_ies(df):
