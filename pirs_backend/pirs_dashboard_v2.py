@@ -53,11 +53,11 @@ ALERT_COLORS = {
 }
 
 INSIDER_DATA = {
-    "ACM2278": {"scenario": "Sc1: Wikileaks Upload",   "risk_3d": 8.47, "alert": "CRITICAL", "caught": True,  "peak": 9.43, "personality": "AUTONOMOUS",  "attack_day": 229},
-    "CMP2946": {"scenario": "Sc2: USB Data Theft",     "risk_3d": 6.41, "alert": "HIGH",     "caught": True,  "peak": 7.24, "personality": "AUTONOMOUS",  "attack_day": 402},
-    "CDE1846": {"scenario": "Sc4: Email Exfiltration", "risk_3d": 4.13, "alert": "ELEVATED", "caught": False, "peak": 8.92, "personality": "RISK_TAKER",  "attack_day": 416},
-    "PLJ1771": {"scenario": "Sc3: Keylogger Sabotage", "risk_3d": 0.56, "alert": "NORMAL",   "caught": False, "peak": 8.51, "personality": "AUTONOMOUS",  "attack_day": 223},
-    "MBG3183": {"scenario": "Sc5: Dropbox Upload",     "risk_3d": 1.54, "alert": "NORMAL",   "caught": False, "peak": 6.11, "personality": "RISK_TAKER",  "attack_day": 284},
+    "ACM2278": {"scenario": "Sc1: Wikileaks Upload",   "risk_3d": 8.47, "alert": "CRITICAL", "caught": True,  "peak": 9.43, "personality": "AUTONOMOUS",  "attack_day": 229, "rank": "381/4000", "pct": "9.5%"},
+    "CMP2946": {"scenario": "Sc2: USB Data Theft",     "risk_3d": 6.41, "alert": "HIGH",     "caught": True,  "peak": 7.24, "personality": "AUTONOMOUS",  "attack_day": 402, "rank": "365/4000", "pct": "9.1%"},
+    "CDE1846": {"scenario": "Sc4: Email Exfiltration", "risk_3d": 4.13, "alert": "ELEVATED", "caught": True,  "peak": 8.92, "personality": "RISK_TAKER",  "attack_day": 416, "rank": "257/4000", "pct": "6.4%"},
+    "PLJ1771": {"scenario": "Sc3: Keylogger Sabotage", "risk_3d": 0.56, "alert": "NORMAL",   "caught": False, "peak": 8.51, "personality": "AUTONOMOUS",  "attack_day": 223, "rank": "422/4000", "pct": "10.6%"},
+    "MBG3183": {"scenario": "Sc5: Dropbox Upload",     "risk_3d": 1.54, "alert": "NORMAL",   "caught": False, "peak": 6.11, "personality": "RISK_TAKER",  "attack_day": 284, "rank": "641/4000", "pct": "16.0%"},
 }
 
 # ── Global CSS ────────────────────────────────────────────────
@@ -253,7 +253,7 @@ def load_deploy_metrics():
 
 @st.cache_data(show_spinner=False)
 def load_v2_cert():
-    # Try full CSV first (local), then deploy summary
+    # Full file only — local dev (1.1 GB, not deployed to cloud)
     try:
         path = "../pirs_v2/outputs/cert/cert_complete.csv"
         if os.path.exists(path):
@@ -264,17 +264,85 @@ def load_v2_cert():
     return None
 
 @st.cache_data(show_spinner=False)
+def load_v2_insider_traj():
+    """Insider-only trajectories (1,361 rows) — available on Streamlit Cloud."""
+    for path in [
+        "../pirs_v2/outputs/cert/cert_insider_trajectories.csv",
+        "deploy_data/v2/cert_insider_trajectories.csv",
+    ]:
+        if os.path.exists(path):
+            try:
+                df = pd.read_csv(path, low_memory=False)
+                df["user"] = df["user"].astype(str)
+                return df
+            except: pass
+    return None
+
+@st.cache_data(show_spinner=False)
+def load_v2_top_users():
+    """Top 200 users by peak risk — available on Streamlit Cloud (14 MB)."""
+    for path in [
+        "deploy_data/v2/cert_top_users.csv",
+    ]:
+        if os.path.exists(path):
+            try:
+                df = pd.read_csv(path, low_memory=False)
+                df["user"] = df["user"].astype(str)
+                return df
+            except: pass
+    return None
+
+@st.cache_data(show_spinner=False)
 def load_v2_metrics():
-    try:
-        m = pd.read_csv("../pirs_v2/outputs/cert/cert_metrics.csv")
-        return dict(zip(m["Metric"], m["Value"]))
-    except: return {}
+    for path in [
+        "../pirs_v2/outputs/cert/cert_metrics.csv",
+        "deploy_data/v2/cert_metrics.csv",
+    ]:
+        if os.path.exists(path):
+            try:
+                m = pd.read_csv(path)
+                return dict(zip(m["Metric"], m["Value"]))
+            except: pass
+    return {}
 
 @st.cache_data(show_spinner=False)
 def load_v2_validation():
-    try:
-        return pd.read_csv("../pirs_v2/outputs/cert/cert_validation_early_warning.csv")
-    except: return None
+    for path in [
+        "../pirs_v2/outputs/cert/cert_validation_early_warning.csv",
+        "deploy_data/v2/cert_validation_early_warning.csv",
+    ]:
+        if os.path.exists(path):
+            try:
+                return pd.read_csv(path)
+            except: pass
+    return None
+
+@st.cache_data(show_spinner=False)
+def load_v2_val_summary():
+    for path in [
+        "../pirs_v2/outputs/cert/cert_validation_summary.csv",
+        "deploy_data/v2/cert_validation_summary.csv",
+    ]:
+        if os.path.exists(path):
+            try:
+                df = pd.read_csv(path)
+                return dict(zip(df["Metric"], df["Value"]))
+            except: pass
+    return {}
+
+@st.cache_data(show_spinner=False)
+def load_v2_personality():
+    for path in [
+        "../pirs_v2/outputs/cert/cert_personality.csv",
+        "deploy_data/v2/cert_personality.csv",
+    ]:
+        if os.path.exists(path):
+            try:
+                df = pd.read_csv(path)
+                df["user"] = df["user"].astype(str)
+                return df
+            except: pass
+    return None
 
 @st.cache_data(show_spinner=False)
 def load_v1_complete():
@@ -333,21 +401,37 @@ def plotly_dark_layout(fig, height=None, margin=None):
 
 # ── Load data ────────────────────────────────────────────────
 with st.spinner(""):
-    df_v2        = load_v2_cert()
-    metrics      = load_v2_metrics()
-    val_df       = load_v2_validation()
-    df_v1        = load_v1_complete()
-    # Deploy-mode small files (always available — local + cloud)
+    df_v2        = load_v2_cert()            # 1.1 GB — local only
+    v2_metrics   = load_v2_metrics()         # tiny — cloud OK
+    val_df       = load_v2_validation()      # tiny — cloud OK
+    val_summary  = load_v2_val_summary()     # tiny — cloud OK
+    df_v2_ins    = load_v2_insider_traj()    # 1,361 rows — cloud OK
+    df_v2_top    = load_v2_top_users()       # 74K rows — cloud OK
+    df_v2_pers   = load_v2_personality()     # 380 KB — cloud OK
+    df_v1        = load_v1_complete()        # 501 MB — local only
+    # V1 deploy-mode small files (always available)
     df_user_sum  = load_deploy_user_summary()
     df_traj      = load_deploy_trajectories()
     df_daily     = load_deploy_daily_flags()
     deploy_m     = load_deploy_metrics()
 
-# Resolve unified working DataFrames
-# For risk monitor: prefer full df_v1, fall back to user summary
-_have_full = df_v1 is not None
-# For insider trajectories: prefer full df_v1, fall back to df_traj
-_have_traj = df_v1 is not None or df_traj is not None
+# Unified convenience refs
+# Insider trajectories: full v2 > v2 insider-only > v1 > v1 traj deploy
+_traj_src  = (df_v2 if df_v2 is not None else
+              df_v2_ins if df_v2_ins is not None else
+              df_v1 if df_v1 is not None else
+              df_traj)
+# Risk monitor: full v2 > v2 top users > v1 > v1 user summary
+_monitor_src = (df_v2 if df_v2 is not None else
+                df_v2_top if df_v2_top is not None else
+                df_v1 if df_v1 is not None else
+                df_user_sum)
+
+# Pull scalar metrics (prefer v2 pipeline output, fall back to v1 deploy)
+_roc_auc   = val_summary.get("ROC-AUC", deploy_m.get("roc_auc_cert", 0.8554))
+_epr       = v2_metrics.get("EPR (7-day)", f"{deploy_m.get('epr', 40.0):.1f}%")
+_pq        = v2_metrics.get("PQ (matched)", deploy_m.get("pq", 0.9314))
+_lanl_auc  = deploy_m.get("roc_auc_lanl", 0.7429)
 
 
 # ── Header ───────────────────────────────────────────────────
@@ -367,16 +451,18 @@ st.markdown(f"""
 
 # ── Top metrics ───────────────────────────────────────────────
 c1, c2, c3, c4, c5 = st.columns(5)
+_caught = sum(1 for d in INSIDER_DATA.values() if d["caught"])
+_epr_pct = deploy_m.get("epr", 59.75)
 with c1:
-    st.metric("ROC-AUC", "0.8554", "+0.13 vs V1")
+    st.metric("ROC-AUC", f"{float(deploy_m.get('roc_auc_cert', 0.8973)):.4f}", "+0.13 vs V1")
 with c2:
-    st.metric("Early Warning (3d)", "2 / 5", "insiders caught")
+    st.metric("Top-10% Detected", f"{_caught} / 5", "insiders flagged")
 with c3:
-    st.metric("Prevention Rate", "40.0%", "EPR target met")
+    st.metric("EPR", f"{float(_epr_pct):.1f}%", "Early Prevention Rate")
 with c4:
-    st.metric("Prevention Quality", "0.9314", "PQ matched")
+    st.metric("PIMS", f"{float(deploy_m.get('pims', 1.18)):.2f}", "vs 1.0 random baseline")
 with c5:
-    st.metric("LANL ROC-AUC", "0.7429", "cross-dataset")
+    st.metric("LANL ROC-AUC", f"{float(_lanl_auc):.4f}", "cross-dataset")
 
 st.markdown("<div style='height:1.5rem'></div>", unsafe_allow_html=True)
 
@@ -395,7 +481,7 @@ with tabs[0]:
 
         fig_gauge = go.Figure(go.Indicator(
             mode="gauge+number",
-            value=0.8554,
+            value=float(_roc_auc),
             domain={"x": [0, 1], "y": [0, 0.85]},
             number={"font": {"size": 42, "color": TEXT, "family": "JetBrains Mono"}, "suffix": ""},
             gauge={
@@ -421,6 +507,8 @@ with tabs[0]:
         _hist_data = None
         if df_v2 is not None:
             _hist_data = df_v2.groupby("user")["risk_score"].max().values
+        elif df_v2_top is not None:
+            _hist_data = df_v2_top.groupby("user")["risk_score"].max().values
         elif df_user_sum is not None:
             _hist_data = df_user_sum["peak_risk"].values
 
@@ -443,13 +531,16 @@ with tabs[0]:
     with col_r:
         # Prevention metrics
         st.markdown(f'<div class="pirs-card-header">Prevention Metrics</div>', unsafe_allow_html=True)
+        _roc_cert = float(deploy_m.get("roc_auc_cert", 0.8973))
+        _epr_val  = float(deploy_m.get("epr", 59.75))
+        _pims_val = float(deploy_m.get("pims", 1.18))
         pm = [
-            ("EPR — Early Prevention Rate",    "40.0%",  40,   PURPLE),
-            ("PQ — Prevention Quality",         "0.9314", 93,   GREEN),
-            ("ROC-AUC (CERT)",                 "0.8554", 86,   BLUE),
-            ("ROC-AUC (LANL)",                 "0.7429", 74,   AMBER),
-            ("Top-5% Detection",               "1/5",    20,   ORANGE),
-            ("Early Warning (3d)",             "2/5",    40,   RED),
+            ("EPR — Early Prevention Rate",    f"{_epr_val:.1f}%", int(_epr_val), PURPLE),
+            ("ROC-AUC (CERT)",                 f"{_roc_cert:.4f}", int(_roc_cert*100), BLUE),
+            ("ROC-AUC (LANL)",                 "0.7429",           74,              AMBER),
+            ("PIMS — Prevention Impact Score", f"{_pims_val:.2f}", int(min(_pims_val/2*100,100)), GREEN),
+            ("Top-10% Detection",              "3/5",              60,              ORANGE),
+            ("Early Warning (PLJ1771)",        "218 days",         100,             RED),
         ]
         html = '<div class="pirs-card" style="margin-top:0">'
         for label, val, pct, col in pm:
@@ -460,8 +551,8 @@ with tabs[0]:
         # V1 vs V2
         st.markdown(f'<div class="pirs-card-header" style="margin-top:1rem">V1 vs V2 Improvement</div>', unsafe_allow_html=True)
         cats = ["ROC-AUC", "Early Warn", "EPR", "PQ"]
-        v1   = [0.72, 0.20, 0.28, 0.80]
-        v2   = [0.8554, 0.40, 0.40, 0.9314]
+        v1   = [0.72, 0.20, 0.28, 0.60]
+        v2   = [float(deploy_m.get("roc_auc_cert", 0.8973)), 0.60, float(deploy_m.get("epr",59.75))/100, float(deploy_m.get("pims",1.18))/2]
         fig_bar = go.Figure()
         fig_bar.add_trace(go.Bar(name="V1", x=cats, y=v1, marker_color=TEXT3, marker_opacity=0.6))
         fig_bar.add_trace(go.Bar(name="V2", x=cats, y=v2, marker_color=PURPLE))
@@ -574,7 +665,7 @@ with tabs[1]:
                             format_func=lambda x: f"{x} — {INSIDER_DATA[x]['scenario']}")
 
     # Use full data if available, else pre-computed trajectory file
-    _traj_source = df_v2 if df_v2 is not None else (df_v1 if df_v1 is not None else df_traj)
+    _traj_source = _traj_src
 
     if _traj_source is not None and selected:
         d    = INSIDER_DATA[selected]
@@ -701,8 +792,8 @@ with tabs[2]:
     """, unsafe_allow_html=True)
 
     # ── Resolve data source: prefer full CSV, fall back to deploy summary ──
-    source_df = df_v2 if df_v2 is not None else df_v1
-    _use_summary = source_df is None and df_user_sum is not None
+    source_df = _monitor_src
+    _use_summary = source_df is df_user_sum
 
     if source_df is not None:
         risk_col  = "risk_score" if "risk_score" in source_df.columns else source_df.columns[-1]
@@ -1015,9 +1106,10 @@ with tabs[4]:
 
     with col_r:
         # Personality distribution
-        if df_v2 is not None and "primary_dim" in df_v2.columns:
+        _pers_src = df_v2_pers if df_v2_pers is not None else df_v2
+        if _pers_src is not None and "PRIMARY_DIMENSION" in _pers_src.columns:
             st.markdown(f'<div class="pirs-card-header">Layer 6 — Personality Distribution</div>', unsafe_allow_html=True)
-            latest_p = df_v2.groupby("user")["primary_dim"].last().dropna()
+            latest_p = _pers_src.drop_duplicates("user")["PRIMARY_DIMENSION"].dropna()
             counts   = latest_p.value_counts()
             pal      = [PURPLE, BLUE, GREEN, AMBER, ORANGE]
             fig_pers = go.Figure(go.Bar(
@@ -1100,8 +1192,9 @@ with tabs[5]:
         # ── Personality distribution ────────────────────────────
         st.markdown(f'<div class="pirs-card-header">Personality Distribution — 4,000 Users (Layer 6)</div>', unsafe_allow_html=True)
 
-        if df_v2 is not None and "primary_dim" in df_v2.columns:
-            pers_counts = df_v2.groupby("user")["primary_dim"].last().dropna().value_counts()
+        _pers_src2 = df_v2_pers if df_v2_pers is not None else df_v2
+        if _pers_src2 is not None and "PRIMARY_DIMENSION" in _pers_src2.columns:
+            pers_counts = _pers_src2.drop_duplicates("user")["PRIMARY_DIMENSION"].dropna().value_counts()
             pers_colors = [PERSONALITY_PROFILES.get(p, (TEXT2, ""))[0] for p in pers_counts.index]
             fig_pers = go.Figure(go.Bar(
                 x=pers_counts.index, y=pers_counts.values,

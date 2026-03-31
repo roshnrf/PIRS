@@ -1,0 +1,6 @@
+user,scenario,first_malicious_day,risk_3d_before,alert_3d_before,flagged_3d,risk_7d_before,alert_7d_before,flagged_7d,risk_10d_before,alert_10d_before,flagged_10d,risk_14d_before,alert_14d_before,flagged_14d,peak_risk_malicious
+ACM2278,Sc1: Wikileaks Upload,229,8.466,CRITICAL,True,0.742,NORMAL,False,1.392,NORMAL,False,2.63,WATCH,False,9.434
+CMP2946,Sc2: USB Theft,402,6.408,HIGH,True,1.974,NORMAL,False,1.579,NORMAL,False,0.883,NORMAL,False,6.588
+PLJ1771,Sc3: Keylogger Sabotage,223,0.563,NORMAL,False,3.207,WATCH,False,0.905,NORMAL,False,2.887,WATCH,False,8.509
+CDE1846,Sc4: Email Exfiltration,416,4.132,ELEVATED,True,2.803,WATCH,False,3.901,WATCH,False,2.182,WATCH,False,8.919
+MBG3183,Sc5: Dropbox Upload,284,1.539,NORMAL,False,1.132,NORMAL,False,0.937,NORMAL,False,0.805,NORMAL,False,6.105

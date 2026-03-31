@@ -1,0 +1,6 @@
+Metric,Value
+ROC-AUC,0.8554
+Flagged at 7d (of 5),0/5
+Flagged at 14d (of 5),0/5
+Precision @ threshold 6.0,0.0013
+Recall @ threshold 6.0,0.1918

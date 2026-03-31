@@ -540,11 +540,14 @@ INSIDER_INFO = {
 
 @st.cache_data
 def load_v2_data():
-    base = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        '..', 'pirs_v2', 'outputs', 'cert')
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    base_full = os.path.join(script_dir, '..', 'pirs_v2', 'outputs', 'cert')
+    base_deploy = os.path.join(script_dir, 'deploy_data', 'v2')
     result = {}
 
-    complete_path = os.path.join(base, 'cert_complete.csv')
+    # ── cert_complete.csv (1.1 GB): use pre-extracted deploy files instead ──
+    # Primary: full pipeline output (local only)
+    complete_path = os.path.join(base_full, 'cert_complete.csv')
     if os.path.exists(complete_path):
         try:
             sample = pd.read_csv(complete_path, nrows=1)
@@ -553,17 +556,28 @@ def load_v2_data():
                     'drift_score', 'drift_slope', 'anomaly_score', 'deviation_score',
                     'intervention_name', 'intervention_level', 'insider',
                     'will_breach_7d', 'will_breach_14d', 'projected_risk_7d',
-                    'COMPLIANT', 'SOCIAL', 'CAREFULL', 'RISK_TAKER', 'AUTONOMOUS',
-                    'PRIMARY_DIMENSION']
+                    'primary_dim']
             dev_cols = sorted([c for c in avail if c.endswith('_dev')])[:20]
             load_cols = list(dict.fromkeys([c for c in want if c in avail] + dev_cols))
             result['df_complete'] = pd.read_csv(complete_path, usecols=load_cols,
                                                 low_memory=False)
+            result['df_insider_traj'] = result['df_complete'][
+                result['df_complete']['user'].isin(
+                    ['ACM2278','CMP2946','PLJ1771','CDE1846','MBG3183'])]
         except Exception:
             result['df_complete'] = None
+            result['df_insider_traj'] = None
     else:
         result['df_complete'] = None
+        # Fallback: use pre-extracted deploy files
+        traj_p = os.path.join(base_deploy, 'cert_insider_trajectories.csv')
+        top_p  = os.path.join(base_deploy, 'cert_top_users.csv')
+        day_p  = os.path.join(base_deploy, 'cert_daily_summary.csv')
+        result['df_insider_traj'] = pd.read_csv(traj_p, low_memory=False) if os.path.exists(traj_p) else None
+        result['df_top_users']    = pd.read_csv(top_p,  low_memory=False) if os.path.exists(top_p)  else None
+        result['df_daily']        = pd.read_csv(day_p,  low_memory=False) if os.path.exists(day_p)  else None
 
+    # ── Small summary files: try full output first, then deploy fallback ─────
     for key, fname in [
         ('df_metrics',     'cert_metrics.csv'),
         ('df_val_summary', 'cert_validation_summary.csv'),
@@ -571,11 +585,25 @@ def load_v2_data():
         ('df_l5_warn',     'cert_early_warning.csv'),
         ('df_personality', 'cert_personality.csv'),
     ]:
-        p = os.path.join(base, fname)
-        result[key] = pd.read_csv(p) if os.path.exists(p) else None
+        p_full   = os.path.join(base_full,   fname)
+        p_deploy = os.path.join(base_deploy, fname)
+        if os.path.exists(p_full):
+            result[key] = pd.read_csv(p_full)
+        elif os.path.exists(p_deploy):
+            result[key] = pd.read_csv(p_deploy)
+        else:
+            result[key] = None
 
-    plot_p = os.path.join(base, 'plots', 'insider_trajectories.png')
-    result['plot_path'] = plot_p if os.path.exists(plot_p) else None
+    # ── Plot: try full output first, then deploy fallback ────────────────────
+    plot_full   = os.path.join(base_full,   'plots', 'insider_trajectories.png')
+    plot_deploy = os.path.join(base_deploy, 'plots', 'insider_trajectories.png')
+    if os.path.exists(plot_full):
+        result['plot_path'] = plot_full
+    elif os.path.exists(plot_deploy):
+        result['plot_path'] = plot_deploy
+    else:
+        result['plot_path'] = None
+
     return result
 
 
@@ -600,16 +628,25 @@ def _risk_cell(val):
 
 def build_v2_tab(v2):
     """Build the full PIRS V2 Research Analysis tab."""
-    df_complete = v2.get('df_complete')
-    df_metrics  = v2.get('df_metrics')
-    df_val_sum  = v2.get('df_val_summary')
-    df_ew       = v2.get('df_early_warn')
-    df_l5       = v2.get('df_l5_warn')
-    df_pers     = v2.get('df_personality')
-    plot_path   = v2.get('plot_path')
+    df_complete    = v2.get('df_complete')
+    df_insider_traj= v2.get('df_insider_traj')
+    df_top_users   = v2.get('df_top_users')
+    df_daily       = v2.get('df_daily')
+    df_metrics     = v2.get('df_metrics')
+    df_val_sum     = v2.get('df_val_summary')
+    df_ew          = v2.get('df_early_warn')
+    df_l5          = v2.get('df_l5_warn')
+    df_pers        = v2.get('df_personality')
+    plot_path      = v2.get('plot_path')
 
-    if df_complete is None:
-        st.warning("PIRS V2 pipeline output not found. Run `pipeline_cert.py` first.")
+    # Use pre-computed deploy files if full pipeline output not available
+    _traj = df_insider_traj if df_complete is None else (
+        df_complete[df_complete['user'].isin(['ACM2278','CMP2946','PLJ1771','CDE1846','MBG3183'])])
+    _monitor = df_top_users  # for live monitor on cloud (top 200 by risk)
+    _daily   = df_daily
+
+    if df_complete is None and df_insider_traj is None and df_metrics is None:
+        st.warning("PIRS V2 data not found. Ensure deploy_data/v2/ exists or run pipeline_cert.py.")
         return
 
     # ── HEADER ──────────────────────────────────────────────────────────────
@@ -656,7 +693,12 @@ def build_v2_tab(v2):
     epr_7d  = "40%"
     epr_3d  = "2 / 5"
     cost    = "$22.8M"
-    n_users = f"{df_complete['user'].nunique():,}"
+    if df_complete is not None:
+        n_users = f"{df_complete['user'].nunique():,}"
+    elif _traj is not None:
+        n_users = "4,000"  # known dataset size
+    else:
+        n_users = "4,000"
 
     if df_val_sum is not None:
         try:
@@ -773,7 +815,10 @@ def build_v2_tab(v2):
 
     with ptab2:
         insider_users = list(INSIDER_INFO.keys())
-        insider_df    = df_complete[df_complete['user'].isin(insider_users)].copy()
+        # Use pre-computed insider trajectories if full df_complete not available
+        _src = df_complete if df_complete is not None else _traj
+        insider_df = (_src[_src['user'].isin(insider_users)].copy()
+                      if _src is not None else pd.DataFrame())
 
         if not insider_df.empty:
             selected_ins = st.multiselect(
@@ -789,11 +834,21 @@ def build_v2_tab(v2):
 
             fig = go.Figure()
 
-            if show_normals:
+            if show_normals and df_complete is not None:
                 non_in = df_complete[~df_complete['user'].isin(insider_users)]['user'].unique()
                 if len(non_in) >= 3:
                     for u in np.random.RandomState(42).choice(non_in, 3, replace=False):
                         ud = df_complete[df_complete['user'] == u].sort_values('day')
+                        fig.add_trace(go.Scatter(
+                            x=ud['day'], y=ud['risk_score'], mode='lines',
+                            line=dict(color='rgba(150,150,150,0.25)', width=1),
+                            showlegend=False, hoverinfo='skip'
+                        ))
+            elif show_normals and _monitor is not None:
+                non_in = _monitor[~_monitor['user'].isin(insider_users)]['user'].unique()
+                if len(non_in) >= 3:
+                    for u in np.random.RandomState(42).choice(non_in, 3, replace=False):
+                        ud = _monitor[_monitor['user'] == u].sort_values('day')
                         fig.add_trace(go.Scatter(
                             x=ud['day'], y=ud['risk_score'], mode='lines',
                             line=dict(color='rgba(150,150,150,0.25)', width=1),
@@ -969,16 +1024,17 @@ def build_v2_tab(v2):
         "(standard deviations) each behavior deviates from their own norm on any given day."
     )
 
-    dev_cols = [c for c in (df_complete.columns if df_complete is not None else [])
+    _expl_src = df_complete if df_complete is not None else _traj
+    dev_cols = [c for c in (_expl_src.columns if _expl_src is not None else [])
                 if c.endswith('_dev')]
 
-    if df_complete is not None and dev_cols:
+    if _expl_src is not None and dev_cols:
         sel_user = st.selectbox(
             "Select insider user to explain:",
             options=list(INSIDER_INFO.keys()),
             format_func=lambda u: f"{u} — {INSIDER_INFO[u]['scenario']} (real insider)"
         )
-        user_df  = df_complete[df_complete['user'] == sel_user].sort_values('day')
+        user_df  = _expl_src[_expl_src['user'] == sel_user].sort_values('day')
 
         if not user_df.empty:
             peak_row = user_df.loc[user_df['risk_score'].idxmax()]
@@ -1074,9 +1130,10 @@ def build_v2_tab(v2):
         "Insider users (real malicious actors) are marked 🔴 when they appear."
     )
 
-    if df_complete is not None:
-        min_d = int(df_complete['day'].min())
-        max_d = int(df_complete['day'].max())
+    _monitor_src = df_complete if df_complete is not None else _monitor
+    if _monitor_src is not None and 'day' in _monitor_src.columns:
+        min_d = int(_monitor_src['day'].min())
+        max_d = int(_monitor_src['day'].max())
         col_s1, col_s2 = st.columns([3, 1])
         with col_s1:
             v2_day = st.slider("Select Day (V2 Monitor)", min_d, max_d,
@@ -1085,10 +1142,11 @@ def build_v2_tab(v2):
             v2_thresh = st.number_input("Min Risk", 0.0, 10.0, 4.0, 0.5,
                                         key='v2_thresh')
 
-        day_df = df_complete[df_complete['day'] == v2_day].copy()
+        day_df = _monitor_src[_monitor_src['day'] == v2_day].copy()
         high   = day_df[day_df['risk_score'] >= v2_thresh].sort_values(
             'risk_score', ascending=False)
-        st.write(f"**Day {v2_day}:** {len(day_df):,} users active · "
+        n_active = f"{len(day_df):,}" if df_complete is not None else f"≤200 (top users)"
+        st.write(f"**Day {v2_day}:** {n_active} users · "
                  f"**{len(high):,}** above threshold {v2_thresh}")
 
         if len(high) > 0:
@@ -1101,6 +1159,9 @@ def build_v2_tab(v2):
             st.dataframe(disp, use_container_width=True, hide_index=True, height=380)
         else:
             st.success(f"No users above threshold {v2_thresh} on Day {v2_day}")
+    elif _daily is not None:
+        st.info("Full per-user monitor not available in cloud deployment. Showing daily aggregate stats.")
+        st.dataframe(_daily.sort_values('day'), use_container_width=True, hide_index=True)
 
     # ── SECTION 9: FULL METRICS TABLES (EXPANDER) ────────────────────────────
     st.markdown("---")
