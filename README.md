@@ -9,9 +9,8 @@
 ![Datasets](https://img.shields.io/badge/Validated%20On-CERT%20r6.2%20%7C%20LANL-blueviolet)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-FF4B4B?logo=streamlit)](https://pirs-v2.streamlit.app/)
 
-> **MS Capstone Project — VIT Chennai, April 2026**
-> Reem Fariha (22BAI1454) · Roshan A Rauof (22BAI1041)
-> Guide: Dr. Anusooya G · School of Computer Science and Engineering
+> **Capstone Project — VIT Chennai, April 2026**
+> Reem Fariha · Roshan A Rauof
 
 ---
 
