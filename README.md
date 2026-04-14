@@ -1,4 +1,4 @@
-# PIRS — Predictive Intervention & Risk Stabilization
+# PIRS - Predictive Intervention & Risk Stabilization
 
 ![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange?logo=tensorflow)
@@ -9,7 +9,7 @@
 ![Datasets](https://img.shields.io/badge/Validated%20On-CERT%20r6.2%20%7C%20LANL-blueviolet)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-FF4B4B?logo=streamlit)](https://pirs-v2.streamlit.app/)
 
-> **Capstone Project — VIT Chennai, April 2026**
+> **Capstone Project - VIT Chennai, April 2026**
 > Reem Fariha · Roshan A Rauof
 
 ---
@@ -18,7 +18,7 @@
 
 Most security tools fire an alert **after** the data has been stolen, **after** the sabotage has happened. By the time the SIEM triggers, the damage is done.
 
-Insider threats cost organizations an average of **$17.4 million per incident** (Ponemon & DTEX, 2023). The challenge is not just detecting them — it is **stopping them before they act**.
+Insider threats cost organizations an average of **$17.4 million per incident** (Ponemon & DTEX, 2023). The challenge is not just detecting them - it is **stopping them before they act**.
 
 **PIRS answers a different question than every existing system:**
 
@@ -36,7 +36,7 @@ PIRS is a **9-layer behavioral AI pipeline** that:
 3. Profiles each user's **OCEAN Big Five personality** archetype
 4. Selects a **personalized intervention** matched to their psychology
 5. Uses **Q-learning** to optimize which intervention works best over time
-6. Measures **prevention outcomes** — not just detection accuracy
+6. Measures **prevention outcomes**, not just detection accuracy
 
 ---
 
@@ -46,14 +46,14 @@ PIRS is a **9-layer behavioral AI pipeline** that:
 
 | Layers | Role |
 |---|---|
-| **L1–L4** | Early warning — ingest logs, build baseline, detect anomalies, forecast drift |
-| **L5–L7** | Personalized response — OCEAN profiling, risk scoring, intervention selection |
-| **L8** | Optimization — Q-learning refines intervention per user over time |
-| **L9** | Measurement — EPR, PQ, PIMS, IES, TTC + ROC-AUC validation |
+| **L1–L4** | Early warning - ingest logs, build baseline, detect anomalies, forecast drift |
+| **L5–L7** | Personalized response - OCEAN profiling, risk scoring, intervention selection |
+| **L8** | Optimization - Q-learning refines intervention per user over time |
+| **L9** | Measurement - EPR, PQ, PIMS, IES, TTC + ROC-AUC validation |
 
 ---
 
-## Feature Engineering — 40 Semantic Features
+## Feature Engineering - 40 Semantic Features
 
 Rather than using all 873 raw CERT columns, PIRS engineers **40 semantically meaningful features** mapped directly to the 5 insider threat scenarios:
 
@@ -103,16 +103,16 @@ Primary archetype = `argmax` across 5 dimension scores, aggregated weekly.
 
 ## Results
 
-### CERT r6.2 — 4,000 users · 515 days · 5 confirmed insider threats
+### CERT r6.2 - 4,000 users · 515 days · 5 confirmed insider threats
 
 | Metric | Result | Target | Status |
 |---|---|---|---|
 | **ROC-AUC** | **0.8973** | > 0.80 | Passed |
-| **EPR** (Escalation Prevention Rate) | **59.75%** | 40–55% | Passed — above target |
+| **EPR** (Escalation Prevention Rate) | **59.75%** | 40–55% | Passed - above target |
 | **PQ** (Preventability Quotient) | **0.5975** | 0.50–0.70 | Passed |
 | **PIMS** (Personality-Intervention Match Score) | **1.18** | 1.15–1.30 | Passed |
 | **TTC** (Time-to-Correction) | **47.8 hours** | 24–48h | Passed |
-| False positive rate | **3.6%** of population flagged | — | Low |
+| False positive rate | **3.6%** of population flagged | - | Low |
 
 ### Per-Insider Detection
 
@@ -125,7 +125,7 @@ Primary archetype = `argmax` across 5 dimension scores, aggregated weekly.
 | MBG3183 | Sabotage (1-day event) | 1 | Detected | Not in top 5% |
 
 > All 5 insiders present in `pirs_complete.csv` (1,361 insider-labeled rows out of 1,394,010 total).
-> PLJ1771 and MBG3183 are single-day events — drift analysis requires ≥3 days of rising trend. Single-day impulsive events are a documented limitation of trajectory-based detection.
+> PLJ1771 and MBG3183 are single-day events - drift analysis requires ≥3 days of rising trend. Single-day impulsive events are a documented limitation of trajectory-based detection.
 
 ---
 
@@ -135,19 +135,19 @@ Primary archetype = `argmax` across 5 dimension scores, aggregated weekly.
 
 ---
 
-### ROC Curve — Insider Detection
+### ROC Curve - Insider Detection
 
 ![ROC Curve](results/chart6_roc.png)
 
-> User-level ROC-AUC of **0.8973** — for any (insider, normal) user pair, PIRS ranks the insider higher 89.73% of the time.
+> User-level ROC-AUC of **0.8973** - for any (insider, normal) user pair, PIRS ranks the insider higher 89.73% of the time.
 
 ---
 
-### Risk Trajectories — Insider vs Normal Users
+### Risk Trajectories - Insider vs Normal Users
 
 ![Risk Trajectories](results/chart1_risk_trajectories.png)
 
-> Shows how insider users (CDE1846 — IP Theft, 45 days) exhibit a clear upward drift in composite risk score in the days leading up to their malicious activity, while normal users remain stable.
+> Shows how insider users (CDE1846 - IP Theft, 45 days) exhibit a clear upward drift in composite risk score in the days leading up to their malicious activity, while normal users remain stable.
 
 ---
 
@@ -155,7 +155,7 @@ Primary archetype = `argmax` across 5 dimension scores, aggregated weekly.
 
 ![Early Warning](results/chart2_early_warning.png)
 
-> Drift-based breach warnings issued **before** the first labeled malicious day for gradual escalators — the core prevention capability of PIRS.
+> Drift-based breach warnings issued **before** the first labeled malicious day for gradual escalators - the core prevention capability of PIRS.
 
 ---
 
@@ -163,7 +163,7 @@ Primary archetype = `argmax` across 5 dimension scores, aggregated weekly.
 
 ![Personality Distribution](results/chart3_personality.png)
 
-> OCEAN Big Five mapping across all 4,000 users — showing the distribution of COMPLIANT, SOCIAL, CAREFULL, RISK_TAKER, and AUTONOMOUS archetypes.
+> OCEAN Big Five mapping across all 4,000 users - showing the distribution of COMPLIANT, SOCIAL, CAREFULL, RISK_TAKER, and AUTONOMOUS archetypes.
 
 ---
 
@@ -171,7 +171,7 @@ Primary archetype = `argmax` across 5 dimension scores, aggregated weekly.
 
 ![Interventions](results/chart5_interventions.png)
 
-> How the 7 intervention levels are distributed across personality archetypes — RISK_TAKER users receive higher-level interventions; COMPLIANT users receive softer nudges.
+> How the 7 intervention levels are distributed across personality archetypes - RISK_TAKER users receive higher-level interventions; COMPLIANT users receive softer nudges.
 
 ---
 
@@ -183,7 +183,7 @@ Primary archetype = `argmax` across 5 dimension scores, aggregated weekly.
 
 ---
 
-### LANL Cross-Dataset Validation — no retraining
+### LANL Cross-Dataset Validation - no retraining
 
 | | |
 |---|---|
@@ -192,7 +192,7 @@ Primary archetype = `argmax` across 5 dimension scores, aggregated weekly.
 | **ROC-AUC (user-level)** | **0.7429** |
 | **Top-5% detection** | **20 / 97 red-team users (20.6%)** |
 
-Same pipeline, different organization, different log schema, no retraining — confirms generalizability.
+Same pipeline, different organization, different log schema, no retraining - confirms generalizability.
 
 ---
 
@@ -225,7 +225,7 @@ No equivalent to these 5 metrics exists in prior insider threat literature:
 | Ye et al. Federated, 2025 | ✅ | ❌ | ❌ | ❌ | ❌ |
 | **PIRS (2026)** | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-Every prior system answers: *"Did we detect it?"* — PIRS answers: *"Did we stop it?"*
+Every prior system answers: *"Did we detect it?"* - PIRS answers: *"Did we stop it?"*
 
 ---
 
@@ -267,7 +267,7 @@ PIRS/
 
 ## Live Demo
 
-**[https://pirs-v2.streamlit.app/](https://pirs-v2.streamlit.app/)** — Interactive dashboard showing risk trajectories, personality archetypes, intervention assignments, and prevention metrics across all 4,000 users.
+**[https://pirs-v2.streamlit.app/](https://pirs-v2.streamlit.app/)** - Interactive dashboard showing risk trajectories, personality archetypes, intervention assignments, and prevention metrics across all 4,000 users.
 
 ---
 
@@ -344,7 +344,7 @@ MISMATCH_PENALTY        = 0.65    # random interventions are 35% less effective
 | Days | 515 |
 | Raw records | 1,393,810 rows × 893 columns (4.2 GB) |
 | Activity domains | logon (12), USB (18), file (333), email (231), HTTP (249) |
-| OCEAN scores | Included per user — scale 10–50 |
+| OCEAN scores | Included per user - scale 10–50 |
 | Insider scenarios | 5 labeled users with ground-truth malicious day ranges |
 | Citation | Glasser & Lindauer, IEEE S&P Workshops, 2013 |
 | Access | [CMU KiltHub](https://kilthub.cmu.edu/articles/dataset/Insider_Threat_Test_Dataset/12841247) |
@@ -360,18 +360,18 @@ Place downloaded files in `pirs_backend/dataset/`.
 | **NIST SP 800-94** | 7-level intervention ladder follows NIST graduated response guidelines |
 | **IEEE ML standards** | Ensemble design, cross-dataset validation, and reporting follow IEEE best practices |
 | **NEO-PI-R / Big Five** | 50-year validated psychometric model (Costa & McCrae, 1992) |
-| **SDG 16** | Peace, Justice and Strong Institutions — data security protects organizational integrity |
+| **SDG 16** | Peace, Justice and Strong Institutions - data security protects organizational integrity |
 
 ---
 
 ## Future Work
 
-- **Real-time streaming** — Kafka/Flink integration for live log processing
-- **SHAP explainability** — Human-readable explanation for every flag
-- **Graph Neural Networks** — Detect coordinated multi-user insider collusion
-- **Federated learning** — Cross-organization model sharing without raw log exposure
-- **LLM behavioral profiling** — Nuanced signals from email text content
-- **Dynamic OCEAN re-scoring** — Personality archetypes updated in real time
+- **Real-time streaming** - Kafka/Flink integration for live log processing
+- **SHAP explainability** - Human-readable explanation for every flag
+- **Graph Neural Networks** - Detect coordinated multi-user insider collusion
+- **Federated learning** - Cross-organization model sharing without raw log exposure
+- **LLM behavioral profiling** - Nuanced signals from email text content
+- **Dynamic OCEAN re-scoring** - Personality archetypes updated in real time
 
 ---
 
@@ -391,4 +391,4 @@ Place downloaded files in `pirs_backend/dataset/`.
 
 ## License
 
-MIT License — see [LICENSE](LICENSE) for details.
+MIT License - see [LICENSE](LICENSE) for details.
