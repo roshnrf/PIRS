@@ -2,9 +2,6 @@
 PIRS BACKEND - LAYER 6: GRADUATED INTERVENTION ENGINE
 ======================================================
 Match interventions to user risk/drift/personality
-
-Can be run standalone: python 05_layer_6_interventions.py
-Or imported: from layer_6_interventions import run_intervention_engine
 """
 
 import os

@@ -75,7 +75,7 @@ except ImportError:
 # CONFIGURATION
 # ============================================================================
 
-DATASET_DIR   = 'dataset'
+DATASET_DIR   = 'dataset/r6.2'
 OUTPUT_DIR    = PIRSConfig.OUTPUT_DIR
 CHUNK_SIZE    = 200_000       # rows per chunk for large files
 WORK_HOUR_START = 7           # 07:00 = start of work day

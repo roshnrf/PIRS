@@ -427,10 +427,11 @@ _monitor_src = (df_v2 if df_v2 is not None else
                 df_v1 if df_v1 is not None else
                 df_user_sum)
 
-# Pull scalar metrics (prefer v2 pipeline output, fall back to v1 deploy)
-_roc_auc   = val_summary.get("ROC-AUC", deploy_m.get("roc_auc_cert", 0.8554))
-_epr       = v2_metrics.get("EPR (7-day)", f"{deploy_m.get('epr', 40.0):.1f}%")
-_pq        = v2_metrics.get("PQ (matched)", deploy_m.get("pq", 0.9314))
+# Pull scalar metrics — pirs_backend deploy_data is authoritative (has HTTP features)
+_roc_auc   = deploy_m.get("roc_auc_cert", 0.8973)   # from pirs_backend validation_report
+_epr       = deploy_m.get("epr", 59.75)
+_pq        = deploy_m.get("pq", 0.5975)
+_pims      = deploy_m.get("pims", 1.18)
 _lanl_auc  = deploy_m.get("roc_auc_lanl", 0.7429)
 
 
@@ -513,17 +514,20 @@ with tabs[0]:
             _hist_data = df_user_sum["peak_risk"].values
 
         if _hist_data is not None:
-            st.markdown(f'<div class="pirs-card-header" style="margin-top:.5rem">Risk Score Distribution — 4,000 Users</div>', unsafe_allow_html=True)
+            _threshold_5pct = float(np.percentile(_hist_data, 5))  # min of top-200 = top-5% boundary
+            _label = "Top 200 users by peak risk (top 5% of 4,000)" if df_v2 is None else "All 4,000 users"
+            st.markdown(f'<div class="pirs-card-header" style="margin-top:.5rem">Risk Score Distribution — {_label}</div>', unsafe_allow_html=True)
             fig_hist = go.Figure()
             fig_hist.add_trace(go.Histogram(
                 x=_hist_data,
-                nbinsx=50,
+                nbinsx=40,
                 marker_color=PURPLE,
                 marker_opacity=0.7,
                 name="Users",
             ))
-            fig_hist.add_vline(x=5.4225, line_dash="dash", line_color=AMBER, line_width=1.5,
-                               annotation_text="Top 5% threshold", annotation_font_color=AMBER, annotation_font_size=10)
+            fig_hist.add_vline(x=_threshold_5pct, line_dash="dash", line_color=AMBER, line_width=1.5,
+                               annotation_text=f"Bottom of top-5% ({_threshold_5pct:.2f})",
+                               annotation_font_color=AMBER, annotation_font_size=10)
             plotly_dark_layout(fig_hist, height=220)
             fig_hist.update_layout(bargap=0.05, xaxis_title="Peak Risk Score", yaxis_title="Users")
             st.plotly_chart(fig_hist, use_container_width=True, config={"displayModeBar": False})
@@ -592,12 +596,15 @@ with tabs[1]:
     # ── Early Warning Timeline ──────────────────────────────────
     st.markdown(f'<div class="pirs-card-header">Early Warning Timeline — When Was Each Insider Flagged?</div>', unsafe_allow_html=True)
 
+    # flag_day = day system first flagged user; attack_day = first malicious day
+    # PLJ1771: 218 days advance warning (validation_report.txt), flag_day = 223-218 = 5
+    # ACM2278, CMP2946, CDE1846: flagged 3 days before attack (Top-10% detection)
     timeline_data = [
         ("ACM2278", "Wikileaks Upload",   229, 226, "CRITICAL", True,  8.47),
         ("CMP2946", "USB Data Theft",     402, 399, "HIGH",     True,  6.41),
-        ("CDE1846", "Email Exfiltration", 416, 413, "ELEVATED", False, 4.13),
-        ("PLJ1771", "Keylogger",          223, 220, "NORMAL",   False, 0.56),
-        ("MBG3183", "Dropbox Upload",     284, 281, "NORMAL",   False, 1.54),
+        ("CDE1846", "Email Exfiltration", 416, 413, "ELEVATED", True,  4.13),
+        ("PLJ1771", "Keylogger (218d)",   223,   5, "WATCH",    False, 0.56),
+        ("MBG3183", "Dropbox Upload",     284, 283, "NORMAL",   False, 1.54),
     ]
 
     fig_tl = go.Figure()
@@ -991,7 +998,7 @@ with tabs[3]:
         fig_roc.add_trace(go.Scatter(x=fpr_lanl, y=tpr_lanl, name="LANL (0.7429)",
                                      line=dict(color=AMBER, width=2), fill="tozeroy",
                                      fillcolor="rgba(210,153,34,0.06)"))
-        fig_roc.add_trace(go.Scatter(x=fpr_cert, y=tpr_cert, name="CERT (0.8554)",
+        fig_roc.add_trace(go.Scatter(x=fpr_cert, y=tpr_cert, name=f"CERT ({float(_roc_auc):.4f})",
                                      line=dict(color=PURPLE, width=2), fill="tozeroy",
                                      fillcolor="rgba(137,87,229,0.06)"))
         plotly_dark_layout(fig_roc, height=320)
@@ -1031,7 +1038,7 @@ with tabs[3]:
     st.markdown(f'<div class="pirs-card-header">Side-by-Side Comparison</div>', unsafe_allow_html=True)
     comp = pd.DataFrame({
         "Metric":        ["ROC-AUC", "Top-5% Detection", "Top-10% Detection", "Users", "Days", "Labels", "Features"],
-        "CERT r6.2":     ["0.8554", "1/5 (20%)", "2/5 (40%)", "4,000", "515", "5 insiders", "873"],
+        "CERT r6.2":     [f"{float(_roc_auc):.4f}", "0/5 (0%)", "3/5 (60%)", "4,000", "516", "5 insiders", "873"],
         "LANL":          ["0.7429", "20/97 (20.6%)", "~40/97 (41%)", "12,416", "58", "97 red-team", "19"],
         "Random baseline": ["0.50", "~1/5 (5%)", "~2/5 (10%)", "—", "—", "—", "—"],
     })
@@ -1123,9 +1130,9 @@ with tabs[4]:
         else:
             st.markdown(f'<div class="pirs-card-header">Layer 9 — Prevention Metrics Explained</div>', unsafe_allow_html=True)
             metrics_exp = [
-                ("EPR — Early Prevention Rate",  "Did we flag the user before the attack?",     "40.0%",  PURPLE),
-                ("PQ  — Prevention Quality",     "Did personality-matching beat generic alerts?","0.9314", GREEN),
-                ("PIMS — Prevention Impact",     "How much did risk drop after intervention?",   "0.94",   BLUE),
+                ("EPR — Early Prevention Rate",  "Did we flag the user before the attack?",     f"{float(deploy_m.get('epr',59.75)):.1f}%", PURPLE),
+                ("PQ  — Prevention Quality",     "Did personality-matching beat generic alerts?",f"{float(deploy_m.get('pq',0.5975)):.4f}", GREEN),
+                ("PIMS — Prevention Impact",     "Personality interventions vs random baseline", f"{float(deploy_m.get('pims',1.18)):.2f}", BLUE),
                 ("IES — Intervention Effect",    "Did this specific intervention work?",         "0.81",   AMBER),
                 ("TTC — Time to Contain",        "Hours from first flag to risk stabilised",     "47.8h",  ORANGE),
             ]
@@ -1151,7 +1158,7 @@ with tabs[5]:
 
     # ── Key metrics row ─────────────────────────────────────────
     ci1, ci2, ci3, ci4 = st.columns(4)
-    ci1.metric("Prevention Quality (PQ)", "0.9314", "matched vs generic")
+    ci1.metric("Prevention Quality (PQ)", f"{float(deploy_m.get('pq', 0.5975)):.4f}", "matched score")
     ci2.metric("Personality Profiles",    "5",       "COMPLIANT · SOCIAL · CAREFULL · RISK_TAKER · AUTONOMOUS")
     ci3.metric("Intervention Levels",     "7",       "L1 Standard → L7 Account Lock")
     ci4.metric("RL Episodes",             "3",       "Q-learning convergence episodes")
@@ -1179,11 +1186,11 @@ with tabs[5]:
 
     # Per-insider intervention data
     INSIDER_INTERVENTIONS = {
-        "ACM2278": {"personality": "AUTONOMOUS",  "rl_level": 6, "rl_name": "Manager Intervention",    "rationale": "High autonomy user uploading to cloud storage — manager escalation required"},
-        "CMP2946": {"personality": "AUTONOMOUS",  "rl_level": 4, "rl_name": "Behavioral Training",     "rationale": "USB data theft pattern — mandatory security training assigned"},
-        "CDE1846": {"personality": "RISK_TAKER",  "rl_level": 3, "rl_name": "Warning Banner",          "rationale": "Email exfiltration over 64 days — friction-based deterrence"},
-        "PLJ1771": {"personality": "AUTONOMOUS",  "rl_level": 2, "rl_name": "Passive Friction",        "rationale": "Single-day keylogger install — baseline friction applied"},
-        "MBG3183": {"personality": "RISK_TAKER",  "rl_level": 2, "rl_name": "Passive Friction",        "rationale": "Single-day Dropbox upload — risk score too low for escalation"},
+        "ACM2278": {"personality": "AUTONOMOUS",  "rl_level": 6, "rl_name": "Manager Intervention",    "rationale": "Cloud upload to Wikileaks — CRITICAL alert 3d before. Manager escalation triggered."},
+        "CMP2946": {"personality": "AUTONOMOUS",  "rl_level": 4, "rl_name": "Behavioral Training",     "rationale": "USB data theft + job-site browsing — HIGH alert 3d before. Security training assigned."},
+        "CDE1846": {"personality": "RISK_TAKER",  "rl_level": 3, "rl_name": "Warning Banner",          "rationale": "64-day email exfiltration — ELEVATED alert, Top 6.4% of 4,000 users. Friction deterrence."},
+        "PLJ1771": {"personality": "AUTONOMOUS",  "rl_level": 2, "rl_name": "Passive Friction",        "rationale": "Physical keylogger, single day — no digital drift signal. Baseline friction only."},
+        "MBG3183": {"personality": "RISK_TAKER",  "rl_level": 1, "rl_name": "Standard Monitoring",    "rationale": "Single Dropbox upload — no drift pattern. Cannot predict from digital logs."},
     }
 
     col_l, col_r = st.columns([3, 2], gap="large")
@@ -1285,13 +1292,13 @@ with tabs[5]:
           <div class="pirs-card-header">Prevention Quality (PQ) — Layer 8</div>
           <div style="display:flex;gap:20px;align-items:center">
             <div>
-              <div style="font-size:28px;font-weight:700;color:{PURPLE};font-family:'JetBrains Mono'">0.9314</div>
+              <div style="font-size:28px;font-weight:700;color:{PURPLE};font-family:'JetBrains Mono'">{float(deploy_m.get('pq', 0.5975)):.4f}</div>
               <div style="font-size:10px;color:{TEXT3}">Personality-matched score</div>
             </div>
             <div style="color:{TEXT3};font-size:16px">≈</div>
             <div>
-              <div style="font-size:28px;font-weight:700;color:{TEXT2};font-family:'JetBrains Mono'">0.9314</div>
-              <div style="font-size:10px;color:{TEXT3}">Generic baseline score</div>
+              <div style="font-size:28px;font-weight:700;color:{TEXT2};font-family:'JetBrains Mono'">0.5000</div>
+              <div style="font-size:10px;color:{TEXT3}">Random baseline (no personality)</div>
             </div>
           </div>
           <div style="font-size:11px;color:{TEXT2};margin-top:10px;padding-top:10px;border-top:1px solid {BORDER}">

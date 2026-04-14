@@ -3,9 +3,6 @@ PIRS BACKEND - CONFIGURATION & SETUP
 =====================================
 Predictive Intervention and Risk Stabilization System
 Configuration file with all system settings
-
-Author: Roshan A Rauof, Reem Fariha
-Defense Date: March 12, 2026
 """
 
 import os

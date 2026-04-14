@@ -3,8 +3,6 @@ PIRS BACKEND - LAYER 4: PROSPECTIVE DRIFT DETECTION
 ====================================================
 Detect behavioral escalation 7 days before threshold breach
 
-Can be run standalone: python 03_layer_4_drift.py
-Or imported: from layer_4_drift import run_drift_detection
 """
 
 import os

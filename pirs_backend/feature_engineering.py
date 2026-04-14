@@ -1,32 +1,3 @@
-"""
-PIRS BACKEND - FEATURE ENGINEERING MODULE
-==========================================
-Creates 40 semantically meaningful insider-threat features from the
-873 raw PCA features in dayr6.2.csv.
-
-Why: The original approach split 873 features into 5 arbitrary equal groups.
-     These 40 features are grounded in insider threat research and map
-     directly to the 5 CERT r6.2 insider scenarios.
-
-Insider scenarios addressed:
-  Scenario 1 (User 2840): Cloud upload          -> cloud_storage_visits, leak_site_visits
-  Scenario 2 (User 2330): Malicious download    -> hack_site_visits, after_hours_http
-  Scenario 3 (User 1282): Espionage             -> external_email_count, files_to_usb
-  Scenario 4 (User 654):  IP theft              -> files_to_usb, usb_activity, docs_to_usb
-  Scenario 5 (User 1494): Sabotage              -> hack_site_visits, after_hours_anomaly
-
-Output: pirs_outputs/data_features_semantic.csv
-        pirs_outputs/behavioral_features.npy  (updated to use 40 features)
-        pirs_outputs/semantic_groups.npy      (feature groups for Layer 5)
-
-Usage:
-    python feature_engineering.py
-    (Run AFTER data_loading.py has created data_processed.csv)
-
-Author: Roshan A Rauof
-Defense: March 12, 2026
-"""
-
 import os
 import sys
 import time

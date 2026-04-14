@@ -2,9 +2,6 @@
 PIRS BACKEND - LAYER 8: PREVENTION METRICS
 ===========================================
 Calculate EPR, PQ, PIMS, IES, TTC metrics
-
-Can be run standalone: python 07_layer_8_metrics.py
-Or imported: from layer_8_metrics import run_prevention_metrics
 """
 
 import os

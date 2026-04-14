@@ -3,8 +3,6 @@ PIRS BACKEND - LAYER 5: DYNAMIC PERSONALITY PROFILING
 ======================================================
 Profile users across 5 behavioral dimensions
 
-Can be run standalone: python 04_layer_5_personality.py
-Or imported: from layer_5_personality import run_personality_profiling
 """
 
 import os

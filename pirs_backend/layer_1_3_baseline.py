@@ -5,9 +5,6 @@ Ensemble anomaly detection using:
 - Isolation Forest (50%)
 - LSTM Autoencoder (35%)
 - One-Class SVM (15%)
-
-Can be run standalone: python 02_layer_1_3_baseline.py
-Or imported: from layer_1_3_baseline import run_baseline_detection
 """
 
 import os
