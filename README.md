@@ -42,52 +42,14 @@ PIRS is a **9-layer behavioral AI pipeline** that:
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                      PIRS 9-LAYER PIPELINE                          │
-├─────────────┬───────────────────────────────────────────────────────┤
-│  LAYER 1    │  Data Ingestion                                        │
-│             │  Parse & normalize 4.2 GB CERT logs (1,393,810 rows)  │
-│             │  Chunked loading · String user ID normalization        │
-├─────────────┼───────────────────────────────────────────────────────┤
-│  LAYER 2    │  Baseline Profiling                                    │
-│             │  Per-user behavioral baseline across 40 features       │
-├─────────────┼───────────────────────────────────────────────────────┤
-│  LAYER 3    │  Ensemble Anomaly Detection                            │
-│             │  Isolation Forest (50%) + LSTM Autoencoder (35%)       │
-│             │  + One-Class SVM (15%) → composite risk score 0–10     │
-├─────────────┼───────────────────────────────────────────────────────┤
-│  LAYER 4    │  Behavioral Drift Detection          ← PREDICTION CORE │
-│             │  7-day linear regression · 7-day forward forecast       │
-│             │  drift_score · will_breach · days_to_breach             │
-├─────────────┼───────────────────────────────────────────────────────┤
-│  LAYER 5    │  OCEAN Personality Profiling                            │
-│             │  Big Five → 5 archetypes: COMPLIANT · SOCIAL            │
-│             │  CAREFULL · RISK_TAKER · AUTONOMOUS                     │
-├─────────────┼───────────────────────────────────────────────────────┤
-│  LAYER 6    │  Risk Scoring                                           │
-│             │  0.50×anomaly + 0.35×drift_slope + 0.15×drift_accel    │
-│             │  → Tier: LOW / MEDIUM / HIGH / CRITICAL                 │
-├─────────────┼───────────────────────────────────────────────────────┤
-│  LAYER 7    │  Graduated Intervention Engine                          │
-│             │  7 levels: Standard Monitor → Passive Friction          │
-│             │  → Warning → Training → Acknowledgment                  │
-│             │  → Manager Alert → Account Lock                         │
-├─────────────┼───────────────────────────────────────────────────────┤
-│  LAYER 8    │  Q-Learning Optimizer                                   │
-│             │  α=0.1 · γ=0.6 · ε=0.2 · 100 episodes · 7 actions     │
-│             │  Bellman update per user → learned_action               │
-├─────────────┼───────────────────────────────────────────────────────┤
-│  LAYER 9    │  Prevention Metrics & Validation                        │
-│             │  EPR · PQ · PIMS · IES · TTC                           │
-│             │  ROC-AUC · top-K detection · early warning analysis     │
-└─────────────┴───────────────────────────────────────────────────────┘
-```
+![PIRS 9-Layer Pipeline Architecture](assets/architecture.jpg)
 
-> **Layers 1–4** generate the early warning signal.
-> **Layers 5–7** personalize the response.
-> **Layer 8** optimizes it over time.
-> **Layer 9** measures whether prevention actually worked.
+| Layers | Role |
+|---|---|
+| **L1–L4** | Early warning — ingest logs, build baseline, detect anomalies, forecast drift |
+| **L5–L7** | Personalized response — OCEAN profiling, risk scoring, intervention selection |
+| **L8** | Optimization — Q-learning refines intervention per user over time |
+| **L9** | Measurement — EPR, PQ, PIMS, IES, TTC + ROC-AUC validation |
 
 ---
 
