@@ -107,25 +107,81 @@ Primary archetype = `argmax` across 5 dimension scores, aggregated weekly.
 
 | Metric | Result | Target | Status |
 |---|---|---|---|
-| **ROC-AUC** | **0.8973** | > 0.80 | ✅ |
-| **EPR** (Escalation Prevention Rate) | **59.75%** | 40–55% | ✅ Exceeded |
-| **PQ** (Preventability Quotient) | **0.5975** | 0.50–0.70 | ✅ |
-| **PIMS** (Personality-Intervention Match Score) | **1.18** | 1.15–1.30 | ✅ |
-| **TTC** (Time-to-Correction) | **47.8 hours** | 24–48h | ✅ |
+| **ROC-AUC** | **0.8973** | > 0.80 | Passed |
+| **EPR** (Escalation Prevention Rate) | **59.75%** | 40–55% | Passed — above target |
+| **PQ** (Preventability Quotient) | **0.5975** | 0.50–0.70 | Passed |
+| **PIMS** (Personality-Intervention Match Score) | **1.18** | 1.15–1.30 | Passed |
+| **TTC** (Time-to-Correction) | **47.8 hours** | 24–48h | Passed |
 | False positive rate | **3.6%** of population flagged | — | Low |
 
 ### Per-Insider Detection
 
-| User | Type | Labeled Days | In Output | Top-5% Risk |
+| User | Type | Labeled Days | In Pipeline Output | Top-5% Risk Rank |
 |---|---|---|---|---|
-| CDE1846 | IP Theft (pre-resignation) | 45 | ✅ | ✅ |
-| CMP2946 | Malicious Download | 20 | ✅ | ✅ |
-| ACM2278 | Cloud Exfiltration | 6 | ✅ | ✅ |
-| PLJ1771 | Espionage (1-day event) | 1 | ✅ | — |
-| MBG3183 | Sabotage (1-day event) | 1 | ✅ | — |
+| CDE1846 | IP Theft (pre-resignation) | 45 | Detected | Ranked top 5% |
+| CMP2946 | Malicious Download | 20 | Detected | Ranked top 5% |
+| ACM2278 | Cloud Exfiltration | 6 | Detected | Ranked top 5% |
+| PLJ1771 | Espionage (1-day event) | 1 | Detected | Not in top 5% |
+| MBG3183 | Sabotage (1-day event) | 1 | Detected | Not in top 5% |
 
 > All 5 insiders present in `pirs_complete.csv` (1,361 insider-labeled rows out of 1,394,010 total).
 > PLJ1771 and MBG3183 are single-day events — drift analysis requires ≥3 days of rising trend. Single-day impulsive events are a documented limitation of trajectory-based detection.
+
+---
+
+### Prevention Metrics Summary
+
+![Prevention Metrics Summary](results/chart8_metrics_summary.png)
+
+---
+
+### ROC Curve — Insider Detection
+
+![ROC Curve](results/chart6_roc.png)
+
+> User-level ROC-AUC of **0.8973** — for any (insider, normal) user pair, PIRS ranks the insider higher 89.73% of the time.
+
+---
+
+### Risk Trajectories — Insider vs Normal Users
+
+![Risk Trajectories](results/chart1_risk_trajectories.png)
+
+> Shows how insider users (CDE1846 — IP Theft, 45 days) exhibit a clear upward drift in composite risk score in the days leading up to their malicious activity, while normal users remain stable.
+
+---
+
+### Early Warning Analysis
+
+![Early Warning](results/chart2_early_warning.png)
+
+> Drift-based breach warnings issued **before** the first labeled malicious day for gradual escalators — the core prevention capability of PIRS.
+
+---
+
+### Personality Archetype Distribution
+
+![Personality Distribution](results/chart3_personality.png)
+
+> OCEAN Big Five mapping across all 4,000 users — showing the distribution of COMPLIANT, SOCIAL, CAREFULL, RISK_TAKER, and AUTONOMOUS archetypes.
+
+---
+
+### Intervention Distribution by Archetype
+
+![Interventions](results/chart5_interventions.png)
+
+> How the 7 intervention levels are distributed across personality archetypes — RISK_TAKER users receive higher-level interventions; COMPLIANT users receive softer nudges.
+
+---
+
+### Per-Insider Risk Rankings
+
+![Rankings](results/chart7_rankings.png)
+
+> Risk ranking of all 5 insider users within the full 4,000-user population.
+
+---
 
 ### LANL Cross-Dataset Validation — no retraining
 
@@ -137,22 +193,6 @@ Primary archetype = `argmax` across 5 dimension scores, aggregated weekly.
 | **Top-5% detection** | **20 / 97 red-team users (20.6%)** |
 
 Same pipeline, different organization, different log schema, no retraining — confirms generalizability.
-
----
-
-## Sample Output Charts
-
-| Chart | Description |
-|---|---|
-| `results/chart1_risk_trajectories.png` | Risk score over time for insider vs normal users |
-| `results/chart2_early_warning.png` | Drift warning timing vs first malicious day |
-| `results/chart3_personality.png` | OCEAN archetype distribution across 4,000 users |
-| `results/chart4_system_wide.png` | System-wide risk score distribution |
-| `results/chart5_interventions.png` | Intervention level distribution by archetype |
-| `results/chart6_roc.png` | ROC curve — insider detection (5 vs 3,995 users) |
-| `results/chart7_rankings.png` | Per-insider risk ranking in full user population |
-| `results/chart8_metrics_summary.png` | EPR / PQ / PIMS / TTC vs target ranges |
-| `results/risk_forecast.html` | Interactive risk forecast timeline |
 
 ---
 
