@@ -7,6 +7,7 @@
 ![EPR](https://img.shields.io/badge/EPR-59.75%25-brightgreen)
 ![PIMS](https://img.shields.io/badge/PIMS-1.18-brightgreen)
 ![Datasets](https://img.shields.io/badge/Validated%20On-CERT%20r6.2%20%7C%20LANL-blueviolet)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Streamlit-FF4B4B?logo=streamlit)](https://pirs-v2.streamlit.app/)
 
 > **MS Capstone Project — VIT Chennai, April 2026**
 > Reem Fariha (22BAI1454) · Roshan A Rauof (22BAI1041)
@@ -265,6 +266,12 @@ PIRS/
 
 ---
 
+## Live Demo
+
+**[https://pirs-v2.streamlit.app/](https://pirs-v2.streamlit.app/)** — Interactive dashboard showing risk trajectories, personality archetypes, intervention assignments, and prevention metrics across all 4,000 users.
+
+---
+
 ## Quick Start
 
 ```bash
@@ -279,7 +286,7 @@ pip install -r requirements.txt
 #    Completed layers are skipped automatically (checkpointed)
 python master_pipeline.py
 
-# 4. Launch the dashboard
+# 4. Launch the dashboard locally
 streamlit run pirs_dashboard_v2.py
 ```
 
