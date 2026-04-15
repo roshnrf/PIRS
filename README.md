@@ -40,6 +40,12 @@ PIRS is a **9-layer behavioral AI pipeline** that:
 
 ---
 
+## Live Demo
+
+**[https://pirs-v2.streamlit.app/](https://pirs-v2.streamlit.app/)** - Interactive dashboard showing risk trajectories, personality archetypes, intervention assignments, and prevention metrics across all 4,000 users.
+
+---
+
 ## Architecture
 
 ![PIRS 9-Layer Pipeline Architecture](assets/architecture.jpg)
@@ -265,11 +271,6 @@ PIRS/
 
 ---
 
-## Live Demo
-
-**[https://pirs-v2.streamlit.app/](https://pirs-v2.streamlit.app/)** - Interactive dashboard showing risk trajectories, personality archetypes, intervention assignments, and prevention metrics across all 4,000 users.
-
----
 
 ## Quick Start
 
